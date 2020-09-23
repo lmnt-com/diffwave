@@ -125,7 +125,7 @@ class DiffWaveLearner:
 
     self.scaler.scale(loss).backward()
     self.scaler.unscale_(self.optimizer)
-    self.grad_norm = nn.utils.clip_grad_norm_(self.model.parameters(), self.params.max_grad_norm)
+    self.grad_norm = nn.utils.clip_grad_norm_(self.model.parameters(), self.params.max_grad_norm or 1e9)
     self.scaler.step(self.optimizer)
     self.scaler.update()
     return loss

@@ -36,7 +36,7 @@ params = AttrDict(
     # Training params
     batch_size=16,
     learning_rate=2e-4,
-    max_grad_norm=1.0,
+    max_grad_norm=None,
 
     # Data params
     sample_rate=22050,
@@ -49,5 +49,5 @@ params = AttrDict(
     residual_layers=30,
     residual_channels=64,
     dilation_cycle_length=10,
-    noise_schedule=np.linspace(1e-4, 0.05, 20).tolist(),
+    noise_schedule=np.linspace(1e-4, 0.05, 50).tolist(),
 )
