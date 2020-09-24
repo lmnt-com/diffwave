@@ -7,7 +7,7 @@ DiffWave is a fast, high-quality neural vocoder and waveform synthesizer. It sta
 - [x] stable training
 - [ ] high-quality synthesis
 - [x] mixed-precision training
-- [ ] multi-GPU training
+- [x] multi-GPU training
 - [x] command-line inference
 - [x] programmatic inference API
 - [x] PyPI package
@@ -48,6 +48,9 @@ tensorboard --logdir /path/to/model/dir --bind_all
 ```
 
 You should expect to hear intelligible (but noisy) speech by ~8k steps (~1.5h on a 2080 Ti).
+
+#### Multi-GPU training
+By default, this implementation uses as many GPUs in parallel as returned by [`torch.cuda.device_count()`](https://pytorch.org/docs/stable/cuda.html#torch.cuda.device_count). You can specify which GPUs to use by setting the [`CUDA_DEVICES_AVAILABLE`](https://developer.nvidia.com/blog/cuda-pro-tip-control-gpu-visibility-cuda_visible_devices/) environment variable before running the training module.
 
 ### Inference API
 Basic usage:

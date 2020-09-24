@@ -18,10 +18,13 @@ import os
 import torch
 import torch.nn as nn
 
+from torch.nn.parallel import DistributedDataParallel
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
+from diffwave.dataset import from_path as dataset_from_path
 from diffwave.model import DiffWave
+from diffwave.params import AttrDict
 
 
 def _nested_map(struct, map_fn):
@@ -45,6 +48,7 @@ class DiffWaveLearner:
     self.autocast = torch.cuda.amp.autocast(enabled=kwargs.get('fp16', False))
     self.scaler = torch.cuda.amp.GradScaler(enabled=kwargs.get('fp16', False))
     self.step = 0
+    self.is_master = True
 
     beta = np.array(self.params.noise_schedule)
     noise_level = np.cumprod(1 - beta)
@@ -53,16 +57,23 @@ class DiffWaveLearner:
     self.summary_writer = None
 
   def state_dict(self):
+    if hasattr(self.model, 'module') and isinstance(self.model.module, nn.Module):
+      model_state = self.model.module.state_dict()
+    else:
+      model_state = self.model.state_dict()
     return {
         'step': self.step,
-        'model': { k: v.cpu() if isinstance(v, torch.Tensor) else v for k, v in self.model.state_dict().items() },
+        'model': { k: v.cpu() if isinstance(v, torch.Tensor) else v for k, v in model_state.items() },
         'optimizer': { k: v.cpu() if isinstance(v, torch.Tensor) else v for k, v in self.optimizer.state_dict().items() },
         'params': dict(self.params),
         'scaler': self.scaler.state_dict(),
     }
 
   def load_state_dict(self, state_dict):
-    self.model.load_state_dict(state_dict['model'])
+    if hasattr(self.model, 'module') and isinstance(self.model.module, nn.Module):
+      self.model.module.load_state_dict(state_dict['model'])
+    else:
+      self.model.load_state_dict(state_dict['model'])
     self.optimizer.load_state_dict(state_dict['optimizer'])
     self.scaler.load_state_dict(state_dict['scaler'])
     self.step = state_dict['step']
@@ -90,17 +101,18 @@ class DiffWaveLearner:
   def train(self, max_steps=None):
     device = next(self.model.parameters()).device
     while True:
-      for features in tqdm(self.dataset, desc=f'Epoch {self.step // len(self.dataset)}'):
+      for features in tqdm(self.dataset, desc=f'Epoch {self.step // len(self.dataset)}') if self.is_master else self.dataset:
         if max_steps is not None and self.step >= max_steps:
           return
         features = _nested_map(features, lambda x: x.to(device) if isinstance(x, torch.Tensor) else x)
         loss = self.train_step(features)
         if torch.isnan(loss).any():
           raise RuntimeError(f'Detected NaN loss at step {self.step}.')
-        if self.step % 50 == 0:
-          self._write_summary(self.step, features, loss)
-        if self.step % len(self.dataset) == 0:
-          self.save_to_checkpoint()
+        if self.is_master:
+          if self.step % 50 == 0:
+            self._write_summary(self.step, features, loss)
+          if self.step % len(self.dataset) == 0:
+            self.save_to_checkpoint()
         self.step += 1
 
   def train_step(self, features):
@@ -140,10 +152,28 @@ class DiffWaveLearner:
     self.summary_writer = writer
 
 
-def train(dataset, args, params):
-  model = DiffWave(params).cuda()
+def _train_impl(replica_id, model, dataset, args, params):
   opt = torch.optim.Adam(model.parameters(), lr=params.learning_rate)
 
   learner = DiffWaveLearner(args.model_dir, model, dataset, opt, params, fp16=args.fp16)
+  learner.is_master = (replica_id == 0)
   learner.restore_from_checkpoint()
   learner.train(max_steps=args.max_steps)
+
+
+def train(args, params):
+  dataset = dataset_from_path(args.data_dirs, params)
+  model = DiffWave(params).cuda()
+  _train_impl(0, model, dataset, args, params)
+
+
+def train_distributed(replica_id, replica_count, port, args, params):
+  os.environ['MASTER_ADDR'] = 'localhost'
+  os.environ['MASTER_PORT'] = str(port)
+  torch.distributed.init_process_group('nccl', rank=replica_id, world_size=replica_count)
+
+  device = torch.device('cuda', replica_id)
+  torch.cuda.set_device(device)
+  model = DiffWave(params).to(device)
+  model = DistributedDataParallel(model, device_ids=[replica_id])
+  _train_impl(replica_id, model, dataset_from_path(args.data_dirs, params, is_distributed=True), args, params)
