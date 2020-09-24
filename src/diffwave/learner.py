@@ -47,7 +47,7 @@ class DiffWaveLearner:
     self.step = 0
 
     beta = np.array(self.params.noise_schedule)
-    noise_level = np.cumprod(1 - beta)**0.5
+    noise_level = np.cumprod(1 - beta)
     self.noise_level = torch.tensor(noise_level.astype(np.float32))
     self.loss_fn = nn.L1Loss()
     self.summary_writer = None
