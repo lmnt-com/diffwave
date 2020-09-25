@@ -82,4 +82,5 @@ def from_path(data_dirs, params, is_distributed=False):
       collate_fn=Collator(params).collate,
       shuffle=not is_distributed,
       num_workers=os.cpu_count(),
-      sampler=DistributedSampler(dataset) if is_distributed else None)
+      sampler=DistributedSampler(dataset) if is_distributed else None,
+      drop_last=True)
