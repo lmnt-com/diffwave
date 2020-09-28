@@ -116,7 +116,8 @@ class DiffWaveLearner:
         self.step += 1
 
   def train_step(self, features):
-    self.optimizer.zero_grad()
+    for param in self.model.parameters():
+      param.grad = None
 
     audio = features['audio']
     spectrogram = features['spectrogram']
@@ -153,6 +154,7 @@ class DiffWaveLearner:
 
 
 def _train_impl(replica_id, model, dataset, args, params):
+  torch.backends.cudnn.benchmark = True
   opt = torch.optim.Adam(model.parameters(), lr=params.learning_rate)
 
   learner = DiffWaveLearner(args.model_dir, model, dataset, opt, params, fp16=args.fp16)

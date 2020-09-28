@@ -83,4 +83,5 @@ def from_path(data_dirs, params, is_distributed=False):
       shuffle=not is_distributed,
       num_workers=os.cpu_count(),
       sampler=DistributedSampler(dataset) if is_distributed else None,
+      pin_memory=True,
       drop_last=True)
