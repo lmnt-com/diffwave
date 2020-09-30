@@ -3,7 +3,7 @@
 
 DiffWave is a fast, high-quality neural vocoder and waveform synthesizer. It starts with Gaussian noise and converts it into speech via iterative refinement. The speech can be controlled by providing a conditioning signal (e.g. log-scaled Mel spectrogram). The model and architecture details are described in [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf).
 
-## Status (2020-09-27)
+## Status (2020-09-30)
 - [x] stable training
 - [x] high-quality synthesis
 - [x] mixed-precision training
@@ -11,16 +11,18 @@ DiffWave is a fast, high-quality neural vocoder and waveform synthesizer. It sta
 - [x] command-line inference
 - [x] programmatic inference API
 - [x] PyPI package
-- [ ] audio samples
-- [ ] pretrained models
+- [x] audio samples
+- [x] pretrained models
 
 Big thanks to [Zhifeng Kong](https://github.com/FengNiMa) (lead author of DiffWave) for pointers and bug fixes.
 
 ## Audio samples
-...coming soon...
+[22.05 kHz audio samples](https://lmnt.com/assets/diffwave)
 
 ## Pretrained models
-...coming soon...
+[22.05 kHz pretrained model](https://lmnt.com/assets/diffwave/diffwave-ljspeech-22kHz-593050.pt) (31 MB, SHA256: `cfedce0f73f14d02bf80927e0af6224d401c271b5a332ddce58d400dc3d62f28`)
+
+This pre-trained model is able to synthesize speech with a real-time factor of 0.87 (smaller is faster).
 
 ## Install
 
