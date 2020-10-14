@@ -3,7 +3,11 @@
 
 DiffWave is a fast, high-quality neural vocoder and waveform synthesizer. It starts with Gaussian noise and converts it into speech via iterative refinement. The speech can be controlled by providing a conditioning signal (e.g. log-scaled Mel spectrogram). The model and architecture details are described in [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf).
 
-## Status (2020-09-30)
+## What's new (2020-10-14)
+- new pretrained model trained for 1M steps
+- updated audio samples with output from new model
+
+## Status (2020-10-14)
 - [x] stable training
 - [x] high-quality synthesis
 - [x] mixed-precision training
@@ -13,6 +17,7 @@ DiffWave is a fast, high-quality neural vocoder and waveform synthesizer. It sta
 - [x] PyPI package
 - [x] audio samples
 - [x] pretrained models
+- [ ] unconditional waveform synthesis
 
 Big thanks to [Zhifeng Kong](https://github.com/FengNiMa) (lead author of DiffWave) for pointers and bug fixes.
 
@@ -20,9 +25,16 @@ Big thanks to [Zhifeng Kong](https://github.com/FengNiMa) (lead author of DiffWa
 [22.05 kHz audio samples](https://lmnt.com/assets/diffwave)
 
 ## Pretrained models
-[22.05 kHz pretrained model](https://lmnt.com/assets/diffwave/diffwave-ljspeech-22kHz-593050.pt) (31 MB, SHA256: `cfedce0f73f14d02bf80927e0af6224d401c271b5a332ddce58d400dc3d62f28`)
+[22.05 kHz pretrained model](https://lmnt.com/assets/diffwave/diffwave-ljspeech-22kHz-1000578.pt) (31 MB, SHA256: `d415d2117bb0bba3999afabdd67ed11d9e43400af26193a451d112e2560821a8`)
 
 This pre-trained model is able to synthesize speech with a real-time factor of 0.87 (smaller is faster).
+
+### Pre-trained model details
+- trained on 4x 1080Ti
+- default parameters
+- single precision floating point (FP32)
+- trained on LJSpeech dataset excluding LJ001&ast; and LJ002&ast;
+- trained for 1000578 steps (1273 epochs)
 
 ## Install
 
