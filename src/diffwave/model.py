@@ -44,12 +44,22 @@ class DiffusionEmbedding(nn.Module):
     self.projection2 = Linear(512, 512)
 
   def forward(self, diffusion_step):
-    x = self.embedding[diffusion_step]
+    if diffusion_step.dtype in [torch.int32, torch.int64]:
+      x = self.embedding[diffusion_step]
+    else:
+      x = self._lerp_embedding(diffusion_step)
     x = self.projection1(x)
     x = silu(x)
     x = self.projection2(x)
     x = silu(x)
     return x
+
+  def _lerp_embedding(self, t):
+    low_idx = torch.floor(t).long()
+    high_idx = torch.ceil(t).long()
+    low = self.embedding[low_idx]
+    high = self.embedding[high_idx]
+    return low + (high - low) * (t - low_idx)
 
   def _build_embedding(self, max_steps):
     steps = torch.arange(max_steps).unsqueeze(1)  # [T,1]
