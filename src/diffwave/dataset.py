@@ -40,12 +40,12 @@ class NumpyDataset(torch.utils.data.Dataset):
     signal, _ = torchaudio.load(audio_filename)
     if self.uncond:
         return {
-            'audio': signal[0] / 32767.5,
+            'audio': signal[0], #/ 32767.5,
             'spectrogram': None
         }
     spectrogram = np.load(spec_filename)
     return {
-        'audio': signal[0] / 32767.5,
+        'audio': signal[0], # / 32767.5,
         'spectrogram': spectrogram.T
     }
 
@@ -58,8 +58,14 @@ class Collator:
     samples_per_frame = self.params.hop_samples
     for record in minibatch:
       if self.params.unconditional:
-          start = 0
-          end *= samples_per_frame
+          # Filter out records that aren't long enough.
+          if len(record['audio']) < self.params.audio_len:
+            del record['spectrogram']
+            del record['audio']
+            continue
+
+          start = random.randint(0, record['audio'].shape[-1] - self.params.audio_len)
+          end = start + self.params.audio_len
           record['audio'] = record['audio'][start:end]
           record['audio'] = np.pad(record['audio'], (0, (end - start) - len(record['audio'])), mode='constant')
       else:

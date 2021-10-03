@@ -30,7 +30,7 @@ def transform(filename):
   audio, sr = T.load(filename)
   if params.sample_rate != sr:
     raise ValueError(f'Invalid sample rate {sr}.')
-  audio = torch.clamp(audio[0] / 32767.5, -1.0, 1.0)
+  audio = torch.clamp(audio[0], -1.0, 1.0)
 
   mel_args = {
       'sample_rate': sr,
