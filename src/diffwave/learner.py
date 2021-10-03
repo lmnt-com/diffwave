@@ -22,7 +22,7 @@ from torch.nn.parallel import DistributedDataParallel
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from diffwave.dataset import from_path as dataset_from_path
+from diffwave.dataset import from_path, from_gtzan
 from diffwave.model import DiffWave
 from diffwave.params import AttrDict
 
@@ -133,7 +133,7 @@ class DiffWaveLearner:
       noise = torch.randn_like(audio)
       noisy_audio = noise_scale_sqrt * audio + (1.0 - noise_scale)**0.5 * noise
 
-      predicted = self.model(noisy_audio, spectrogram, t)
+      predicted = self.model(noisy_audio, t, spectrogram)
       loss = self.loss_fn(noise, predicted.squeeze(1))
 
     self.scaler.scale(loss).backward()
@@ -146,7 +146,7 @@ class DiffWaveLearner:
   def _write_summary(self, step, features, loss):
     writer = self.summary_writer or SummaryWriter(self.model_dir, purge_step=step)
     writer.add_audio('feature/audio', features['audio'][0], step, sample_rate=self.params.sample_rate)
-    writer.add_image('feature/spectrogram', torch.flip(features['spectrogram'][:1], [1]), step)
+    #writer.add_image('feature/spectrogram', torch.flip(features['spectrogram'][:1], [1]), step)
     writer.add_scalar('train/loss', loss, step)
     writer.add_scalar('train/grad_norm', self.grad_norm, step)
     writer.flush()
@@ -164,7 +164,10 @@ def _train_impl(replica_id, model, dataset, args, params):
 
 
 def train(args, params):
-  dataset = dataset_from_path(args.data_dirs, params)
+  if args.data_dirs[0] == 'gtzan':
+    dataset = from_gtzan(params)
+  else:
+    dataset = from_path(args.data_dirs, params)
   model = DiffWave(params).cuda()
   _train_impl(0, model, dataset, args, params)
 
@@ -173,9 +176,12 @@ def train_distributed(replica_id, replica_count, port, args, params):
   os.environ['MASTER_ADDR'] = 'localhost'
   os.environ['MASTER_PORT'] = str(port)
   torch.distributed.init_process_group('nccl', rank=replica_id, world_size=replica_count)
-
+  if args.data_dirs[0] == 'gtzan':
+    dataset = from_gtzan(params, is_distributed=True)
+  else:
+    dataset = from_path(args.data_dirs, params, is_distributed=True)
   device = torch.device('cuda', replica_id)
   torch.cuda.set_device(device)
   model = DiffWave(params).to(device)
   model = DistributedDataParallel(model, device_ids=[replica_id])
-  _train_impl(replica_id, model, dataset_from_path(args.data_dirs, params, is_distributed=True), args, params)
+  _train_impl(replica_id, model, dataset, args, params)

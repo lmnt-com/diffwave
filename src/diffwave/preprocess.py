@@ -27,7 +27,7 @@ from diffwave.params import params
 
 
 def transform(filename):
-  audio, sr = T.load_wav(filename)
+  audio, sr = T.load(filename)
   if params.sample_rate != sr:
     raise ValueError(f'Invalid sample rate {sr}.')
   audio = torch.clamp(audio[0] / 32767.5, -1.0, 1.0)
