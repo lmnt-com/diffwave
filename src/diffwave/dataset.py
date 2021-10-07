@@ -23,13 +23,12 @@ from glob import glob
 from torch.utils.data.distributed import DistributedSampler
 import torch.nn.functional as F
 
-class NumpyDataset(torch.utils.data.Dataset):
-  def __init__(self, paths, uncond=False):
+class ConditionalDataset(torch.utils.data.Dataset):
+  def __init__(self, paths):
     super().__init__()
     self.filenames = []
     for path in paths:
       self.filenames += glob(f'{path}/**/*.wav', recursive=True)
-    self.uncond = uncond
 
   def __len__(self):
     return len(self.filenames)
@@ -37,17 +36,41 @@ class NumpyDataset(torch.utils.data.Dataset):
   def __getitem__(self, idx):
     audio_filename = self.filenames[idx]
     spec_filename = f'{audio_filename}.spec.npy'
-    signal, _ = torchaudio.load(audio_filename)
-    if self.uncond:
-        return {
-            'audio': signal[0], #/ 32767.5,
-            'spectrogram': None
-        }
+    if torchaudio.__version__ > '0.7.0':
+        signal, _ = torchaudio.load(audio_filename)
+    else:
+        signal, _ = torchaudio.load_wav(audio_filename)
     spectrogram = np.load(spec_filename)
+    # https://github.com/lmnt-com/diffwave/issues/15
+    out = signal[0] if torchaudio.__version__ > '0.7.0' else signal[0] / 32767.5
     return {
-        'audio': signal[0], # / 32767.5,
+        'audio': out,
         'spectrogram': spectrogram.T
     }
+
+class UnconditionalDataset(torch.utils.data.Dataset):
+  def __init__(self, paths):
+    super().__init__()
+    self.filenames = []
+    for path in paths:
+      self.filenames += glob(f'{path}/**/*.wav', recursive=True)
+
+  def __len__(self):
+    return len(self.filenames)
+
+  def __getitem__(self, idx):
+    audio_filename = self.filenames[idx]
+    spec_filename = f'{audio_filename}.spec.npy'
+    if torchaudio.__version__ > '0.7.0':
+        signal, _ = torchaudio.load(audio_filename)
+    else:
+        signal, _ = torchaudio.load_wav(audio_filename)
+    out = signal[0] if torchaudio.__version__ > '0.7.0' else signal[0] / 32767.5
+    return {
+        'audio': out,
+        'spectrogram': None
+    }
+
 
 
 class Collator:
@@ -99,8 +122,12 @@ class Collator:
   # for gtzan
   def collate_gtzan(self, minibatch):
     ldata = []
-    mean_audio_len = 66150
-
+    mean_audio_len = self.params.audio_len # change to fit in gpu memory
+    # audio total generated time = audio_len * sample_rate
+    # GTZAN statistics
+    # max len audio 675808; min len audio sample 660000; mean len audio sample 662117
+    # max audio sample 1; min audio sample -1; mean audio sample -0.0010 (normalized)
+    # sample rate of all is 22050
     for data in minibatch:
       if data[0].shape[-1] < mean_audio_len:  # pad
         data_audio = F.pad(data[0], (0, mean_audio_len - data[0].shape[-1]), mode='constant', value=0)
@@ -109,9 +136,7 @@ class Collator:
       else:
         data_audio = data[0]
       ldata.append(data_audio)
-    # audio = torch.stack(ldata)
     audio = torch.cat(ldata, dim=0)
-    #if self.params.unconditional:
     return {
           'audio': audio,
           'spectrogram': None,
@@ -119,9 +144,9 @@ class Collator:
 
 def from_path(data_dirs, params, is_distributed=False):
   if params.unconditional:
-    dataset = NumpyDataset(data_dirs, uncond=True)
+    dataset = UnconditionalDataset(data_dirs)
   else:#with condition
-    dataset = NumpyDataset(data_dirs)
+    dataset = ConditionalDataset(data_dirs)
   return torch.utils.data.DataLoader(
       dataset,
       batch_size=params.batch_size,

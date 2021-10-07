@@ -96,21 +96,22 @@ class ResidualBlock(nn.Module):
     super().__init__()
     self.dilated_conv = Conv1d(residual_channels, 2 * residual_channels, 3, padding=dilation, dilation=dilation)
     self.diffusion_projection = Linear(512, residual_channels)
-    self.uncond = uncond
-    if not uncond:
+    if not uncond: # conditional model
       self.conditioner_projection = Conv1d(n_mels, 2 * residual_channels, 1)
+    else: # unconditional model
+      self.conditioner_projection = None
+
     self.output_projection = Conv1d(residual_channels, 2 * residual_channels, 1)
 
   def forward(self, x, diffusion_step, conditioner=None):
     diffusion_step = self.diffusion_projection(diffusion_step).unsqueeze(-1)
-
-
     y = x + diffusion_step
-    if not self.uncond or conditioner:
+    if self.conditioner_projection is None: # using a unconditional model
+      assert (conditioner == None)
+      y = self.dilated_conv(y)
+    else:
       conditioner = self.conditioner_projection(conditioner)
       y = self.dilated_conv(y) + conditioner
-    else:
-      y = self.dilated_conv(y)
 
     gate, filter = torch.chunk(y, 2, dim=1)
     y = torch.sigmoid(gate) * torch.tanh(filter)
@@ -126,7 +127,11 @@ class DiffWave(nn.Module):
     self.params = params
     self.input_projection = Conv1d(1, params.residual_channels, 1)
     self.diffusion_embedding = DiffusionEmbedding(len(params.noise_schedule))
-    self.spectrogram_upsampler = SpectrogramUpsampler(params.n_mels)
+    if self.params.unconditional: # use unconditional model
+      self.spectrogram_upsampler = None
+    else:
+      self.spectrogram_upsampler = SpectrogramUpsampler(params.n_mels)
+
     self.residual_layers = nn.ModuleList([
         ResidualBlock(params.n_mels, params.residual_channels, 2**(i % params.dilation_cycle_length), uncond=params.unconditional)
         for i in range(params.residual_layers)
@@ -141,7 +146,8 @@ class DiffWave(nn.Module):
     x = F.relu(x)
 
     diffusion_step = self.diffusion_embedding(diffusion_step)
-    if not self.params.unconditional or spectrogram:
+    if self.spectrogram_upsampler: # use conditional model
+      assert(spectrogram)
       spectrogram = self.spectrogram_upsampler(spectrogram)
 
     skip = []

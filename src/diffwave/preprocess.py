@@ -27,11 +27,15 @@ from diffwave.params import params
 
 
 def transform(filename):
-  audio, sr = T.load(filename)
+  if T.__version__ > '0.7.0':
+    audio, sr = T.load(filename)
+    audio = torch.clamp(audio[0], -1.0, 1.0)
+  else:
+    audio, sr = T.load_wav(filename)
+    audio = torch.clamp(audio[0] / 32767.5, -1.0, 1.0)
+
   if params.sample_rate != sr:
     raise ValueError(f'Invalid sample rate {sr}.')
-  audio = torch.clamp(audio[0], -1.0, 1.0)
-
   mel_args = {
       'sample_rate': sr,
       'win_length': params.hop_samples * 4,
