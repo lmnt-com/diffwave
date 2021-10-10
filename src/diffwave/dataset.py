@@ -132,7 +132,9 @@ class Collator:
       if data[0].shape[-1] < mean_audio_len:  # pad
         data_audio = F.pad(data[0], (0, mean_audio_len - data[0].shape[-1]), mode='constant', value=0)
       elif data[0].shape[-1] > mean_audio_len:  # crop
-        data_audio = data[0][:, 0:mean_audio_len]
+        start = random.randint(0, data[0].shape[-1] - mean_audio_len)
+        end = start + mean_audio_len
+        data_audio = data[0][:, start:end]
       else:
         data_audio = data[0]
       ldata.append(data_audio)

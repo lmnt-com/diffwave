@@ -90,7 +90,7 @@ def predict(spectrogram=None, model_dir=None, params=None, device=torch.device('
 
 
 def main(args):
-  if args.spectrogram_path != '':
+  if args.spectrogram_path:
     spectrogram = torch.from_numpy(np.load(args.spectrogram_path))
   else:
     spectrogram = None

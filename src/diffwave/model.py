@@ -147,7 +147,6 @@ class DiffWave(nn.Module):
 
     diffusion_step = self.diffusion_embedding(diffusion_step)
     if self.spectrogram_upsampler: # use conditional model
-      assert(spectrogram)
       spectrogram = self.spectrogram_upsampler(spectrogram)
 
     skip = []
