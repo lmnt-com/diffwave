@@ -54,6 +54,7 @@ setup(name = 'diffwave',
     install_requires = [
         'numpy',
         'torch>=1.6',
+        #'torchaudio>=0.7.0',
         'torchaudio==0.7.0',
         'tqdm'
     ],
