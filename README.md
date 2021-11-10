@@ -3,6 +3,9 @@
 
 DiffWave is a fast, high-quality neural vocoder and waveform synthesizer. It starts with Gaussian noise and converts it into speech via iterative refinement. The speech can be controlled by providing a conditioning signal (e.g. log-scaled Mel spectrogram). The model and architecture details are described in [DiffWave: A Versatile Diffusion Model for Audio Synthesis](https://arxiv.org/pdf/2009.09761.pdf).
 
+## What's new (2021-11-09)
+- unconditional waveform synthesis (thanks to [Andrechang](https://github.com/Andrechang)!)
+
 ## What's new (2021-04-01)
 - fast sampling algorithm based on v3 of the DiffWave paper
 
@@ -10,7 +13,7 @@ DiffWave is a fast, high-quality neural vocoder and waveform synthesizer. It sta
 - new pretrained model trained for 1M steps
 - updated audio samples with output from new model
 
-## Status (2021-04-01)
+## Status (2021-11-09)
 - [x] fast inference procedure
 - [x] stable training
 - [x] high-quality synthesis
@@ -21,7 +24,7 @@ DiffWave is a fast, high-quality neural vocoder and waveform synthesizer. It sta
 - [x] PyPI package
 - [x] audio samples
 - [x] pretrained models
-- [ ] unconditional waveform synthesis
+- [x] unconditional waveform synthesis
 
 Big thanks to [Zhifeng Kong](https://github.com/FengNiMa) (lead author of DiffWave) for pointers and bug fixes.
 
