@@ -153,12 +153,12 @@ class DiffWave(nn.Module):
     if self.spectrogram_upsampler: # use conditional model
       spectrogram = self.spectrogram_upsampler(spectrogram)
 
-    skip = []
+    skip = None
     for layer in self.residual_layers:
       x, skip_connection = layer(x, diffusion_step, spectrogram)
-      skip.append(skip_connection)
+      skip = skip_connection if skip is None else skip_connection + skip
 
-    x = torch.sum(torch.stack(skip), dim=0) / sqrt(len(self.residual_layers))
+    x = skip / sqrt(len(self.residual_layers))
     x = self.skip_projection(x)
     x = F.relu(x)
     x = self.output_projection(x)
