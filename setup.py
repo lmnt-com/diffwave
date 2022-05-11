@@ -16,7 +16,7 @@
 from setuptools import find_packages, setup
 
 
-VERSION = '0.1.7'
+VERSION = '0.1.8'
 DESCRIPTION = 'diffwave'
 AUTHOR = 'LMNT, Inc.'
 AUTHOR_EMAIL = 'github@lmnt.com'
@@ -54,8 +54,7 @@ setup(name = 'diffwave',
     install_requires = [
         'numpy',
         'torch>=1.6',
-        #'torchaudio>=0.7.0',
-        'torchaudio==0.7.0',
+        'torchaudio>=0.9.0',
         'tqdm'
     ],
     classifiers = CLASSIFIERS)

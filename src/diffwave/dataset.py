@@ -17,11 +17,12 @@ import numpy as np
 import os
 import random
 import torch
+import torch.nn.functional as F
 import torchaudio
 
 from glob import glob
 from torch.utils.data.distributed import DistributedSampler
-import torch.nn.functional as F
+
 
 class ConditionalDataset(torch.utils.data.Dataset):
   def __init__(self, paths):
@@ -36,17 +37,13 @@ class ConditionalDataset(torch.utils.data.Dataset):
   def __getitem__(self, idx):
     audio_filename = self.filenames[idx]
     spec_filename = f'{audio_filename}.spec.npy'
-    if torchaudio.__version__ > '0.7.0':
-        signal, _ = torchaudio.load(audio_filename)
-    else:
-        signal, _ = torchaudio.load_wav(audio_filename)
+    signal, _ = torchaudio.load(audio_filename)
     spectrogram = np.load(spec_filename)
-    # https://github.com/lmnt-com/diffwave/issues/15
-    out = signal[0] if torchaudio.__version__ > '0.7.0' else signal[0] / 32767.5
     return {
-        'audio': out,
+        'audio': signal[0],
         'spectrogram': spectrogram.T
     }
+
 
 class UnconditionalDataset(torch.utils.data.Dataset):
   def __init__(self, paths):
@@ -61,16 +58,11 @@ class UnconditionalDataset(torch.utils.data.Dataset):
   def __getitem__(self, idx):
     audio_filename = self.filenames[idx]
     spec_filename = f'{audio_filename}.spec.npy'
-    if torchaudio.__version__ > '0.7.0':
-        signal, _ = torchaudio.load(audio_filename)
-    else:
-        signal, _ = torchaudio.load_wav(audio_filename)
-    out = signal[0] if torchaudio.__version__ > '0.7.0' else signal[0] / 32767.5
+    signal, _ = torchaudio.load(audio_filename)
     return {
-        'audio': out,
+        'audio': signal[0],
         'spectrogram': None
     }
-
 
 
 class Collator:
@@ -144,6 +136,7 @@ class Collator:
           'spectrogram': None,
     }
 
+
 def from_path(data_dirs, params, is_distributed=False):
   if params.unconditional:
     dataset = UnconditionalDataset(data_dirs)
@@ -158,6 +151,7 @@ def from_path(data_dirs, params, is_distributed=False):
       sampler=DistributedSampler(dataset) if is_distributed else None,
       pin_memory=True,
       drop_last=True)
+
 
 def from_gtzan(params, is_distributed=False):
   dataset = torchaudio.datasets.GTZAN('./data', download=True)
