@@ -142,7 +142,7 @@ class DiffWave(nn.Module):
     self.output_projection = Conv1d(params.residual_channels, 1, 1)
     nn.init.zeros_(self.output_projection.weight)
 
-  def forward(self, audio, diffusion_step, spectrogram=None):
+  def forward(self, audio, diffusion_step, spectrogram=None, infer=False):
     assert (spectrogram is None and self.spectrogram_upsampler is None) or \
            (spectrogram is not None and self.spectrogram_upsampler is not None)
     x = audio.unsqueeze(1)
@@ -150,8 +150,9 @@ class DiffWave(nn.Module):
     x = F.relu(x)
 
     diffusion_step = self.diffusion_embedding(diffusion_step)
-    if self.spectrogram_upsampler: # use conditional model
-      spectrogram = self.spectrogram_upsampler(spectrogram)
+    if not infer:
+      if self.spectrogram_upsampler: # use conditional model
+        spectrogram = self.spectrogram_upsampler(spectrogram)
 
     skip = None
     for layer in self.residual_layers:

@@ -72,6 +72,7 @@ def predict(spectrogram=None, model_dir=None, params=None, device=torch.device('
       if len(spectrogram.shape) == 2:# Expand rank 2 tensors by adding a batch dimension.
         spectrogram = spectrogram.unsqueeze(0)
       spectrogram = spectrogram.to(device)
+      spectrogram = model.spectrogram_upsampler(spectrogram)
       audio = torch.randn(spectrogram.shape[0], model.params.hop_samples * spectrogram.shape[-1], device=device)
     else:
       audio = torch.randn(1, params.audio_len, device=device)
@@ -80,7 +81,7 @@ def predict(spectrogram=None, model_dir=None, params=None, device=torch.device('
     for n in range(len(alpha) - 1, -1, -1):
       c1 = 1 / alpha[n]**0.5
       c2 = beta[n] / (1 - alpha_cum[n])**0.5
-      audio = c1 * (audio - c2 * model(audio, torch.tensor([T[n]], device=audio.device), spectrogram).squeeze(1))
+      audio = c1 * (audio - c2 * model(audio, torch.tensor([T[n]], device=audio.device), spectrogram, infer=True).squeeze(1))
       if n > 0:
         noise = torch.randn_like(audio)
         sigma = ((1.0 - alpha_cum[n-1]) / (1.0 - alpha_cum[n]) * beta[n])**0.5
