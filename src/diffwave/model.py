@@ -43,46 +43,46 @@ class DiffusionEmbedding(nn.Module):
     self.projection1 = Linear(128, 512)
     self.projection2 = Linear(512, 512)
 
-  def forward(self, diffusion_step):
-    if diffusion_step.dtype in [torch.int32, torch.int64]:
-      x = self.embedding[diffusion_step]
+  def forward(self, diffusion_step):   
+    if diffusion_step.dtype in [torch.int32, torch.int64]:  
+      x = self.embedding[diffusion_step]    # 如果t是整数选取对应表示diffusion_step的embedding
     else:
-      x = self._lerp_embedding(diffusion_step)
-    x = self.projection1(x)
+      x = self._lerp_embedding(diffusion_step)   # t是小数的情况
+    x = self.projection1(x)             # [1,128] -> [1,512]
     x = silu(x)
-    x = self.projection2(x)
+    x = self.projection2(x)             # [1,512] -> [1,512]
     x = silu(x)
-    return x
+    return x    #  最终返回一个用于表示t的向量，维度为[1,512]
 
   def _lerp_embedding(self, t):
-    low_idx = torch.floor(t).long()
+    low_idx = torch.floor(t).long()    
     high_idx = torch.ceil(t).long()
     low = self.embedding[low_idx]
     high = self.embedding[high_idx]
     return low + (high - low) * (t - low_idx)
 
-  def _build_embedding(self, max_steps):
+  def _build_embedding(self, max_steps):   # 没明白咋回事
     steps = torch.arange(max_steps).unsqueeze(1)  # [T,1]
     dims = torch.arange(64).unsqueeze(0)          # [1,64]
     table = steps * 10.0**(dims * 4.0 / 63.0)     # [T,64]
-    table = torch.cat([torch.sin(table), torch.cos(table)], dim=1)
+    table = torch.cat([torch.sin(table), torch.cos(table)], dim=1)  # [T,128]
     return table
 
 
-class SpectrogramUpsampler(nn.Module):
+class SpectrogramUpsampler(nn.Module):  
   def __init__(self, n_mels):
     super().__init__()
     self.conv1 = ConvTranspose2d(1, 1, [3, 32], stride=[1, 16], padding=[1, 8])
     self.conv2 = ConvTranspose2d(1, 1,  [3, 32], stride=[1, 16], padding=[1, 8])
 
   def forward(self, x):
-    x = torch.unsqueeze(x, 1)
+    x = torch.unsqueeze(x, 1)     
     x = self.conv1(x)
     x = F.leaky_relu(x, 0.4)
     x = self.conv2(x)
     x = F.leaky_relu(x, 0.4)
     x = torch.squeeze(x, 1)
-    return x
+    return x          
 
 
 class ResidualBlock(nn.Module):
@@ -107,18 +107,18 @@ class ResidualBlock(nn.Module):
     assert (conditioner is None and self.conditioner_projection is None) or \
            (conditioner is not None and self.conditioner_projection is not None)
 
-    diffusion_step = self.diffusion_projection(diffusion_step).unsqueeze(-1)
-    y = x + diffusion_step
+    diffusion_step = self.diffusion_projection(diffusion_step).unsqueeze(-1)   # [batchsize, residual_chanels,1]
+    y = x + diffusion_step                     # 将waveform与 diffusion_step embedding 融合 
     if self.conditioner_projection is None: # using a unconditional model
-      y = self.dilated_conv(y)
+      y = self.dilated_conv(y)              
     else:
       conditioner = self.conditioner_projection(conditioner)
-      y = self.dilated_conv(y) + conditioner
+      y = self.dilated_conv(y) + conditioner    #  此处将mel谱作为条件与特征融合
 
-    gate, filter = torch.chunk(y, 2, dim=1)
-    y = torch.sigmoid(gate) * torch.tanh(filter)
+    gate, filter = torch.chunk(y, 2, dim=1)    # 类似 waveNet中的结构
+    y = torch.sigmoid(gate) * torch.tanh(filter)   
 
-    y = self.output_projection(y)
+    y = self.output_projection(y)              
     residual, skip = torch.chunk(y, 2, dim=1)
     return (x + residual) / sqrt(2.0), skip
 
@@ -144,14 +144,14 @@ class DiffWave(nn.Module):
 
   def forward(self, audio, diffusion_step, spectrogram=None):
     assert (spectrogram is None and self.spectrogram_upsampler is None) or \
-           (spectrogram is not None and self.spectrogram_upsampler is not None)
-    x = audio.unsqueeze(1)
-    x = self.input_projection(x)
-    x = F.relu(x)
+           (spectrogram is not None and self.spectrogram_upsampler is not None)   # spectrogram是否输入要与是否开启条件输入对应
+    x = audio.unsqueeze(1)    #  [batchsize, 1, datapoints]
+    x = self.input_projection(x)    # [batchsize, rsidual_channels, datapoints]
+    x = F.relu(x)                 
 
-    diffusion_step = self.diffusion_embedding(diffusion_step)
+    diffusion_step = self.diffusion_embedding(diffusion_step)   
     if self.spectrogram_upsampler: # use conditional model
-      spectrogram = self.spectrogram_upsampler(spectrogram)
+      spectrogram = self.spectrogram_upsampler(spectrogram)   # 对mel谱上采样
 
     skip = None
     for layer in self.residual_layers:
@@ -159,7 +159,7 @@ class DiffWave(nn.Module):
       skip = skip_connection if skip is None else skip_connection + skip
 
     x = skip / sqrt(len(self.residual_layers))
-    x = self.skip_projection(x)
+    x = self.skip_projection(x)   # 通道之间相关性 1x1卷积
     x = F.relu(x)
-    x = self.output_projection(x)
+    x = self.output_projection(x)   
     return x

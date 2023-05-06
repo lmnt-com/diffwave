@@ -23,16 +23,16 @@ from concurrent.futures import ProcessPoolExecutor
 from glob import glob
 from tqdm import tqdm
 
-from diffwave.params import params
+from params import params
 
 
 def transform(filename):
-  audio, sr = T.load(filename)
-  audio = torch.clamp(audio[0], -1.0, 1.0)
+  audio, sr = T.load(filename)    # audio为二维的数据，[声道数，样本点数]
+  audio = torch.clamp(audio[0], -1.0, 1.0)     # 将样本值限制到-1到1之间
 
-  if params.sample_rate != sr:
+  if params.sample_rate != sr:            # 如果样本采样率和代码预设的采样率不一致，则报错
     raise ValueError(f'Invalid sample rate {sr}.')
-  mel_args = {
+  mel_args = {                          # 梅尔谱的参数
       'sample_rate': sr,
       'win_length': params.hop_samples * 4,
       'hop_length': params.hop_samples,
@@ -43,23 +43,23 @@ def transform(filename):
       'power': 1.0,
       'normalized': True,
   }
-  mel_spec_transform = TT.MelSpectrogram(**mel_args)
+  mel_spec_transform = TT.MelSpectrogram(**mel_args)   # 定义梅尔谱的transform
 
   with torch.no_grad():
-    spectrogram = mel_spec_transform(audio)
-    spectrogram = 20 * torch.log10(torch.clamp(spectrogram, min=1e-5)) - 20
-    spectrogram = torch.clamp((spectrogram + 100) / 100, 0.0, 1.0)
-    np.save(f'{filename}.spec.npy', spectrogram.cpu().numpy())
+    spectrogram = mel_spec_transform(audio)                # 得到样本的梅尔谱
+    spectrogram = 20 * torch.log10(torch.clamp(spectrogram, min=1e-5)) - 20   #零处理，取对数
+    spectrogram = torch.clamp((spectrogram + 100) / 100, 0.0, 1.0)  # 将梅尔谱的值限制在 [0,1] 之间
+    np.save(f'{filename}.spec.npy', spectrogram.cpu().numpy())    # 将处理好的梅尔谱保存下来
 
 
 def main(args):
-  filenames = glob(f'{args.dir}/**/*.wav', recursive=True)
-  with ProcessPoolExecutor() as executor:
+  filenames = glob(f'{args.dir}/**/*.wav', recursive=True)   
+  with ProcessPoolExecutor() as executor:     #  并行运行transform函数，使对每个wav文件的处理并行进行
     list(tqdm(executor.map(transform, filenames), desc='Preprocessing', total=len(filenames)))
 
 
 if __name__ == '__main__':
   parser = ArgumentParser(description='prepares a dataset to train DiffWave')
-  parser.add_argument('dir',
+  parser.add_argument('--dir', default='/pubdata/zhongjiafeng/aishell3/train/wav_16k',
       help='directory containing .wav files for training')
   main(parser.parse_args())

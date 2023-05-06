@@ -39,7 +39,7 @@ params = AttrDict(
     max_grad_norm=None,
 
     # Data params
-    sample_rate=22050,
+    sample_rate=16000,
     n_mels=80,
     n_fft=1024,
     hop_samples=256,
@@ -50,7 +50,7 @@ params = AttrDict(
     residual_channels=64,
     dilation_cycle_length=10,
     unconditional = False,
-    noise_schedule=np.linspace(1e-4, 0.05, 50).tolist(),
+    noise_schedule=np.linspace(1e-4, 0.05, 50).tolist(),  # 从0.0001到0.05等间隔分布的50个数  
     inference_noise_schedule=[0.0001, 0.001, 0.01, 0.05, 0.2, 0.5],
 
     # unconditional sample len
