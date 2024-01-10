@@ -55,6 +55,9 @@ setup(name = 'diffwave',
         'numpy',
         'torch>=1.6',
         'torchaudio>=0.9.0',
-        'tqdm'
+        'tqdm',
+        'tensorboard',
+        'packaging',
+        'soundfile'
     ],
     classifiers = CLASSIFIERS)
