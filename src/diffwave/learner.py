@@ -79,16 +79,8 @@ class DiffWaveLearner:
     self.step = state_dict['step']
 
   def save_to_checkpoint(self, filename='weights'):
-    save_basename = f'{filename}-{self.step}.pt'
-    save_name = f'{self.model_dir}/{save_basename}'
-    link_name = f'{self.model_dir}/{filename}.pt'
-    torch.save(self.state_dict(), save_name)
-    if os.name == 'nt':
-      torch.save(self.state_dict(), link_name)
-    else:
-      if os.path.islink(link_name):
-        os.unlink(link_name)
-      os.symlink(save_basename, link_name)
+      save_name = f'{self.model_dir}/{filename}.pt'
+      torch.save(self.state_dict(), save_name)
 
   def restore_from_checkpoint(self, filename='weights'):
     try:
