@@ -48,14 +48,9 @@ This pre-trained model is able to synthesize speech with a real-time factor of 0
 
 ## Install
 
-Install using pip:
+From GitHub:
 ```
-pip install diffwave
-```
-
-or from GitHub:
-```
-git clone https://github.com/lmnt-com/diffwave.git
+git clone https://github.com/dillfrescott/diffwave.git
 cd diffwave
 pip install .
 ```
