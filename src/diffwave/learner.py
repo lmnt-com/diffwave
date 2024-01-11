@@ -78,13 +78,9 @@ class DiffWaveLearner:
     self.scaler.load_state_dict(state_dict['scaler'])
     self.step = state_dict['step']
 
-  def save_to_checkpoint(self, filename='weights', epoch=None):
-      if epoch is None:
-          save_name = f'{self.model_dir}/{filename}.pt'
-          torch.save(self.state_dict(), save_name)
-      elif epoch % 100 == 0:
-          save_name = f'{self.model_dir}/{filename}_{epoch}.pt'
-          torch.save(self.state_dict(), save_name)
+  def save_to_checkpoint(self, filename='weights'):
+      save_name = f'{self.model_dir}/{filename}.pt'
+      torch.save(self.state_dict(), save_name)
 
   def restore_from_checkpoint(self, filename='weights'):
     try:
