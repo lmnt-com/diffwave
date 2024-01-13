@@ -9,8 +9,7 @@ DiffWave is a fast, high-quality neural vocoder and waveform synthesizer. It sta
 From GitHub:
 ```
 git clone https://github.com/dillfrescott/diffwave.git
-cd diffwave
-pip install .
+pip install -e diffwave
 ```
 
 ### Training
