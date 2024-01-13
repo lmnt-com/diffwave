@@ -86,7 +86,7 @@ audio, sample_rate = diffwave_predict(spectrogram, model_dir, fast_sampling=True
 
 ### Inference CLI
 ```
-python -m diffwave.inference --fast /path/to/model /path/to/spectrogram -o output.wav
+python -m diffwave.inference /path/to/model --spectrogram_path /path/to/spectrogram -o output.wav [--fast]
 ```
 
 ## References
