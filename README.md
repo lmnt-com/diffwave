@@ -4,6 +4,8 @@ DiffWave is a fast, high-quality neural vocoder and waveform synthesizer. It sta
 
 ## Install
 
+(First install pytorch)
+
 From GitHub:
 ```
 git clone https://github.com/dillfrescott/diffwave.git
