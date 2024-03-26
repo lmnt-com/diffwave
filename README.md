@@ -15,7 +15,7 @@ pip install -e diffwave
 ### Training
 
 ```bash
-python -m diffwave.preprocess /path/to/dir/containing/wavs # 44100hz, 1 channel
+python -m diffwave.preprocess /path/to/dir/containing/wavs # 48000hz, 1 channel
 python -m diffwave /path/to/model/dir /path/to/dir/containing/wavs
 
 # in another shell to monitor training progress:
